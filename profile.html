@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Qanvora — Profile</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;1,9..144,400;1,9..144,500&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+<style>
+  :root{
+    --bg:#121110; --bg-elev:#1B1917; --brass:#C9A063; --brass-dim:#8B7048;
+    --ivory:#EDE7DA; --stone:#8C877D; --line:#2B2823;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{ background:var(--bg); color:var(--ivory); font-family:'Inter',sans-serif; min-height:100vh; display:flex; align-items:center; justify-content:center; padding:32px 16px; }
+  .card{ width:100%; max-width:380px; background:var(--bg-elev); border:1px solid var(--line); border-radius:20px; padding:40px 28px 28px; position:relative; overflow:hidden; }
+  .tap-zone{ position:relative; width:112px; height:112px; margin:0 auto 22px; display:flex; align-items:center; justify-content:center; }
+  .ripple{ position:absolute; border-radius:50%; border:1px solid var(--brass-dim); opacity:0; animation:ripple 2.8s ease-out infinite; }
+  .ripple.r2{ animation-delay:.7s; } .ripple.r3{ animation-delay:1.4s; }
+  @keyframes ripple{ 0%{width:72px;height:72px;opacity:.55;} 100%{width:150px;height:150px;opacity:0;} }
+  @media (prefers-reduced-motion: reduce){ .ripple{ animation:none; opacity:0; } }
+  .avatar{ width:72px; height:72px; border-radius:50%; background:linear-gradient(155deg,#2A2620,#171512); border:1px solid var(--brass-dim); display:flex; align-items:center; justify-content:center; font-family:'Fraunces',serif; font-size:26px; color:var(--brass); z-index:2; }
+  .identity{ text-align:center; margin-bottom:26px; }
+  .eyebrow{ font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:2px; text-transform:uppercase; color:var(--brass); margin-bottom:8px; }
+  .name{ font-family:'Fraunces',serif; font-style:italic; font-weight:500; font-size:28px; line-height:1.15; margin-bottom:6px; }
+  .role{ font-size:14px; color:var(--stone); }
+  .role span{ color:var(--ivory); }
+  .rule{ width:36px; height:1px; background:var(--brass-dim); margin:18px auto 0; }
+  .actions{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:22px; }
+  .action{ display:flex; align-items:center; justify-content:center; gap:8px; padding:13px 10px; border-radius:11px; font-size:13px; font-weight:500; text-decoration:none; border:1px solid var(--line); color:var(--ivory); background:#17150F; cursor:pointer; }
+  .action.primary{ grid-column:1/-1; background:var(--brass); color:#171512; border-color:var(--brass); font-weight:600; }
+  .action svg{ width:15px; height:15px; flex-shrink:0; }
+  .action.hidden{ display:none; }
+  .connect-label{ font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:1.5px; text-transform:uppercase; color:var(--stone); text-align:center; margin-bottom:12px; }
+  .socials{ display:flex; justify-content:center; gap:14px; margin-bottom:30px; }
+  .socials a{ width:38px; height:38px; border-radius:50%; border:1px solid var(--line); display:flex; align-items:center; justify-content:center; color:var(--stone); text-decoration:none; }
+  .socials a.hidden{ display:none; }
+  .socials svg{ width:16px; height:16px; }
+  .footer{ display:flex; align-items:center; justify-content:center; gap:6px; padding-top:18px; border-top:1px solid var(--line); }
+  .footer-mark{ font-family:'Fraunces',serif; font-style:italic; font-size:13px; color:var(--brass); }
+  .footer-sub{ font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:1px; color:var(--stone); text-transform:uppercase; }
+  .state-msg{ display:none; text-align:center; color:var(--stone); font-size:13px; padding:40px 20px; }
+
+  /* ---- card entrance ---- */
+  .card{ opacity:0; transform:translateY(10px); transition:opacity .5s ease, transform .5s ease; }
+  .card.show{ opacity:1; transform:translateY(0); }
+
+  /* ---- skeleton loading state ---- */
+  .skeleton{ width:100%; max-width:380px; background:var(--bg-elev); border:1px solid var(--line); border-radius:20px; padding:40px 28px 28px; }
+  .skel-bar{ border-radius:6px; background:linear-gradient(90deg, #1B1917 25%, #26221C 37%, #1B1917 63%); background-size:400% 100%; animation:shimmer 1.6s ease-in-out infinite; }
+  @keyframes shimmer{ 0%{ background-position:200% 0; } 100%{ background-position:-200% 0; } }
+  .skel-avatar{ width:72px; height:72px; border-radius:50%; margin:0 auto 26px; }
+  .skel-name{ width:60%; height:20px; margin:0 auto 10px; }
+  .skel-role{ width:75%; height:12px; margin:0 auto 30px; }
+  .skel-actions{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:22px; }
+  .skel-actions .skel-bar{ height:42px; }
+  .skel-actions .full{ grid-column:1/-1; }
+  .skel-connect-label{ width:70px; height:10px; margin:0 auto 14px; }
+  .skel-socials{ display:flex; justify-content:center; gap:14px; margin-bottom:30px; }
+  .skel-socials .skel-bar{ width:38px; height:38px; border-radius:50%; }
+  .skel-footer{ width:120px; height:12px; margin:18px auto 0; }
+  @media (prefers-reduced-motion: reduce){
+    .skel-bar{ animation:none; }
+    .card{ transition:none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="card" id="card" style="display:none;">
+  <div class="tap-zone">
+    <div class="ripple r1"></div><div class="ripple r2"></div><div class="ripple r3"></div>
+    <div class="avatar" id="initials">--</div>
+  </div>
+  <div class="identity">
+    <div class="eyebrow">Qanvora Profile</div>
+    <div class="name" id="name">—</div>
+    <div class="role" id="role"></div>
+    <div class="rule"></div>
+  </div>
+  <div class="actions">
+    <a class="action primary" id="saveContactBtn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+      Save Contact
+    </a>
+    <a class="action" id="callBtn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+      Call
+    </a>
+    <a class="action" id="waBtn">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2 22l5.29-1.39a9.9 9.9 0 0 0 4.75 1.21h.01c5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.82 9.82 0 0 0 12.04 2z"/></svg>
+      WhatsApp
+    </a>
+    <a class="action" id="emailBtn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 6-10 7L2 6"/></svg>
+      Email
+    </a>
+  </div>
+  <div class="connect-label">Connect</div>
+  <div class="socials">
+    <a href="#" id="liBtn" aria-label="LinkedIn"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.45 20.45h-3.55v-5.57c0-1.33-.02-3.03-1.85-3.03-1.86 0-2.15 1.45-2.15 2.94v5.66H9.35V9h3.41v1.56h.05c.47-.9 1.63-1.85 3.36-1.85 3.6 0 4.27 2.37 4.27 5.45v6.29zM5.34 7.43a2.06 2.06 0 1 1 0-4.12 2.06 2.06 0 0 1 0 4.12zM7.12 20.45H3.56V9h3.56v11.45z"/></svg></a>
+    <a href="#" id="igBtn" aria-label="Instagram"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1"/></svg></a>
+    <a href="#" id="webBtn" aria-label="Website"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></a>
+  </div>
+  <div class="footer">
+    <span class="footer-mark">Qanvora</span><span class="footer-sub">· Tap to Connect</span>
+  </div>
+</div>
+
+<div class="skeleton" id="skeleton">
+  <div class="skel-bar skel-avatar"></div>
+  <div class="skel-bar skel-name"></div>
+  <div class="skel-bar skel-role"></div>
+  <div class="skel-actions">
+    <div class="skel-bar full"></div>
+    <div class="skel-bar"></div>
+    <div class="skel-bar"></div>
+    <div class="skel-bar"></div>
+  </div>
+  <div class="skel-bar skel-connect-label"></div>
+  <div class="skel-socials">
+    <div class="skel-bar"></div>
+    <div class="skel-bar"></div>
+    <div class="skel-bar"></div>
+  </div>
+  <div class="skel-bar skel-footer"></div>
+</div>
+
+<div class="state-msg" id="stateMsg"></div>
+
+<script>
+  // ====== PASTE YOUR SUPABASE VALUES HERE (same as admin.html) ======
+  const SUPABASE_URL = "YOUR_SUPABASE_URL";
+  const SUPABASE_ANON_KEY = "YOUR_SUPABASE_ANON_KEY";
+  // ====================================================================
+
+  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  function digitsOnly(s){ return (s || "").replace(/[^\d+]/g, ""); }
+  function withProtocol(url){
+    if(!url) return "";
+    return /^https?:\/\//i.test(url) ? url : "https://" + url;
+  }
+
+  function downloadVCard(p){
+    const vcard = [
+      "BEGIN:VCARD","VERSION:3.0",
+      "FN:" + (p.name || ""),
+      "TITLE:" + (p.title || ""),
+      "ORG:" + (p.company || ""),
+      "TEL;TYPE=CELL:" + (p.phone || ""),
+      "EMAIL:" + (p.email || ""),
+      "END:VCARD"
+    ].join("\n");
+    const blob = new Blob([vcard], { type: "text/vcard" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = (p.name || "contact").replace(/\s+/g, "_") + ".vcf";
+    link.click();
+  }
+
+  async function init(){
+    const params = new URLSearchParams(window.location.search);
+    const slug = params.get("id");
+
+    function showState(message){
+      document.getElementById("skeleton").style.display = "none";
+      const msg = document.getElementById("stateMsg");
+      msg.textContent = message;
+      msg.style.display = "block";
+    }
+
+    if(!slug){
+      showState("No profile specified.");
+      return;
+    }
+
+    const { data, error } = await sb.from("profiles").select("*").eq("id", slug).maybeSingle();
+
+    if(error){
+      showState("Something went wrong loading this profile.");
+      console.error(error);
+      return;
+    }
+    if(!data){
+      showState("This profile hasn't been set up yet.");
+      return;
+    }
+
+    document.getElementById("skeleton").style.display = "none";
+    const card = document.getElementById("card");
+    card.style.display = "block";
+    requestAnimationFrame(() => requestAnimationFrame(() => card.classList.add("show")));
+
+    document.getElementById("name").textContent = data.name || "—";
+    document.getElementById("role").innerHTML = (data.title || "") + (data.company ? ' at <span>' + data.company + '</span>' : "");
+
+    const initials = (data.name || "").split(" ").filter(Boolean).slice(0,2).map(w => w[0]?.toUpperCase() || "").join("") || "--";
+    document.getElementById("initials").textContent = initials;
+
+    document.getElementById("saveContactBtn").onclick = () => downloadVCard(data);
+
+    const callBtn = document.getElementById("callBtn");
+    if(data.phone){ callBtn.href = "tel:" + digitsOnly(data.phone); } else { callBtn.classList.add("hidden"); }
+
+    const waBtn = document.getElementById("waBtn");
+    if(data.whatsapp){ waBtn.href = "https://wa.me/" + digitsOnly(data.whatsapp).replace("+",""); } else { waBtn.classList.add("hidden"); }
+
+    const emailBtn = document.getElementById("emailBtn");
+    if(data.email){ emailBtn.href = "mailto:" + data.email; } else { emailBtn.classList.add("hidden"); }
+
+    const liBtn = document.getElementById("liBtn");
+    if(data.linkedin){ liBtn.href = withProtocol(data.linkedin); liBtn.target = "_blank"; } else { liBtn.classList.add("hidden"); }
+
+    const igBtn = document.getElementById("igBtn");
+    if(data.instagram){ igBtn.href = withProtocol(data.instagram); igBtn.target = "_blank"; } else { igBtn.classList.add("hidden"); }
+
+    const webBtn = document.getElementById("webBtn");
+    if(data.website){ webBtn.href = withProtocol(data.website); webBtn.target = "_blank"; } else { webBtn.classList.add("hidden"); }
+  }
+
+  init();
+</script>
+
+</body>
+</html>
