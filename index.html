@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Qanvora</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;1,9..144,400;1,9..144,500&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#121110; --bg-elev:#1B1917; --brass:#C9A063; --brass-dim:#8B7048;
+    --ivory:#EDE7DA; --stone:#8C877D; --line:#2B2823;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{ background:var(--bg); color:var(--ivory); font-family:'Inter',sans-serif; min-height:100vh; display:flex; align-items:center; justify-content:center; padding:32px 16px; }
+  .wrap{ width:100%; max-width:420px; text-align:center; }
+  .brand{ font-family:'Fraunces',serif; font-style:italic; font-weight:500; font-size:42px; color:var(--brass); margin-bottom:12px; }
+  .tagline{ font-size:14px; color:var(--stone); margin-bottom:40px; line-height:1.6; }
+  .btn{ display:inline-block; width:100%; font-family:'Inter',sans-serif; font-size:14px; font-weight:600; padding:14px 20px; border-radius:11px; text-decoration:none; cursor:pointer; box-sizing:border-box; }
+  .btn.primary{ background:var(--brass); color:#171512; margin-bottom:14px; }
+  .btn.secondary{ background:transparent; border:1px solid var(--line); color:var(--ivory); }
+  .btn:hover{ opacity:.92; }
+  .note{ font-size:11px; color:var(--stone); margin-top:32px; line-height:1.6; }
+  .footer{ margin-top:48px; padding-top:20px; border-top:1px solid var(--line); font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:1px; color:var(--stone); text-transform:uppercase; }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <div class="brand">Qanvora</div>
+  <div class="tagline">Your digital business card — always up to date, one tap away.</div>
+
+  <a class="btn primary" href="admin.html">Sign In to Edit My Profile</a>
+
+  <div class="note">Have a Qanvora card in hand? Just tap or scan it to view that profile directly — you don't need this page for that.</div>
+
+  <div class="footer">Qanvora</div>
+</div>
+
+</body>
+</html>
