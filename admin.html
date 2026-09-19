@@ -73,6 +73,7 @@
   #logoThumb img{ width:100%; height:100%; object-fit:contain; display:block; }
   #logoThumb img.white{ filter:brightness(0) invert(1); }
   .check-row{ display:flex; align-items:center; gap:8px; margin-top:8px; font-size:12px; color:var(--stone); cursor:pointer; }
+  .check-row.disabled{ opacity:.5; cursor:not-allowed; }
   .link-btn{ background:none; border:none; color:var(--stone); font-size:12px; cursor:pointer; margin-left:12px; text-decoration:underline; padding:0; }
   .link-btn:hover{ color:var(--ivory); }
   .swatch-row{ display:flex; gap:12px; flex-wrap:wrap; }
@@ -270,7 +271,8 @@
             <input type="file" id="logoInput" accept="image/png,image/jpeg,image/webp">
             <button type="button" class="link-btn" id="logoRemove" onclick="removePremiumMedia('logo')" style="display:none;">Remove</button>
             <div class="photo-hint" id="logoHint">Replaces your initials at the top-left. A PNG with a transparent background looks cleanest.</div>
-            <label class="check-row"><input type="checkbox" id="logoWhite"> Show logo in white (best for dark logos)</label>
+            <label class="check-row" id="logoWhiteRow"><input type="checkbox" id="logoWhite"> Show logo in white (for single-color dark logos)</label>
+            <div class="photo-hint" id="logoWhiteHint"></div>
           </div>
         </div>
         <div class="slug-hint">Photos are resized automatically so your card loads fast on phones. Click Save changes to apply.</div>
@@ -396,6 +398,74 @@
     }
     document.getElementById("logoRemove").style.display = currentLogoUrl ? "inline" : "none";
     document.getElementById("logoWhite").checked = currentLogoWhite;
+    updateLogoWhiteAdvice();
+  }
+
+  // "White mode" turns every visible pixel white. That only works for a plain
+  // dark logo — on a colorful logo (or one with white lettering) it would melt
+  // into a flat white shape — so we check the logo and switch the option off.
+  const logoKindCache = {};
+  function analyzeLogo(url){
+    if(!logoKindCache[url]){
+      logoKindCache[url] = new Promise(resolve => {
+        const img = new Image();
+        img.crossOrigin = "anonymous";
+        img.onload = () => {
+          try{
+            const scale = Math.min(1, 64 / Math.max(img.width, img.height));
+            const c = document.createElement("canvas");
+            c.width = Math.max(1, Math.round(img.width * scale));
+            c.height = Math.max(1, Math.round(img.height * scale));
+            const g = c.getContext("2d");
+            g.drawImage(img, 0, 0, c.width, c.height);
+            const d = g.getImageData(0, 0, c.width, c.height).data;
+            let total = 0, dark = 0, light = 0;
+            for(let i = 0; i < d.length; i += 4){
+              if(d[i+3] < 80) continue;
+              total++;
+              const lum = 0.299 * d[i] + 0.587 * d[i+1] + 0.114 * d[i+2];
+              if(lum < 115) dark++;
+              if(lum > 170) light++;
+            }
+            if(!total) return resolve("unknown");
+            if(dark / total >= 0.9) return resolve("dark");
+            if(light / total >= 0.85) return resolve("light");
+            resolve("detailed");
+          } catch(e){ resolve("unknown"); }
+        };
+        img.onerror = () => resolve("unknown");
+        img.src = url;
+      });
+    }
+    return logoKindCache[url];
+  }
+
+  async function updateLogoWhiteAdvice(){
+    const box = document.getElementById("logoWhite");
+    const row = document.getElementById("logoWhiteRow");
+    const hint = document.getElementById("logoWhiteHint");
+    const setState = (enabled, text) => { box.disabled = !enabled; row.classList.toggle("disabled", !enabled); hint.textContent = text; };
+
+    if(!currentLogoUrl){ setState(false, ""); return; }
+    const url = currentLogoUrl;
+    const kind = await analyzeLogo(url);
+    if(url !== currentLogoUrl) return;
+
+    if(kind === "detailed" || kind === "light"){
+      setState(false, kind === "light"
+        ? "Your logo is already light, so it shows up on the dark card without this."
+        : "Not needed — your logo has its own colors, and white mode would turn it into a flat white shape.");
+      if(currentLogoWhite){
+        currentLogoWhite = false;
+        box.checked = false;
+        const img = document.querySelector("#logoThumb img");
+        if(img) img.classList.remove("white");
+      }
+    } else if(kind === "dark"){
+      setState(true, "Your logo is dark, so white mode will help it stand out.");
+    } else {
+      setState(true, "Check the preview — white mode turns the whole logo into one flat white color.");
+    }
   }
 
   // Turns a plain white background (typical of JPG logos) into transparency so
