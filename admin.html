@@ -202,6 +202,14 @@
 
   <div id="editorRoot" style="display:none;">
 
+  <div class="section" id="activationSection" style="display:none;">
+    <div class="section-title">Activate your account</div>
+    <div class="slug-hint" style="margin:0 0 14px;">Enter the activation code that came with your Qanvora card to create your profile.</div>
+    <div class="field"><input type="text" id="activateCode" placeholder="From your Qanvora card" style="text-transform:uppercase;"></div>
+    <div class="actions-bar"><button class="btn primary" id="activateBtn" onclick="activateAccount()">Activate</button></div>
+    <div class="slug-hint" id="activateMsg" style="margin-top:10px;"></div>
+  </div>
+
   <div class="layout" id="editView">
     <div>
 
@@ -669,8 +677,9 @@
     if(currentUser){
       const pendingCode = localStorage.getItem("qanvora_pending_code");
       if(pendingCode){
-        sb.rpc("redeem_activation_code", { code_input: pendingCode }).then(() => {
-          localStorage.removeItem("qanvora_pending_code");
+        sb.rpc("redeem_activation_code", { code_input: pendingCode }).then(({ error }) => {
+          if(!error){ localStorage.removeItem("qanvora_pending_code"); }
+          checkActivation();
         });
       }
       if(currentUser.id !== loadedForUserId){
@@ -695,6 +704,39 @@
 
   // "edit" and "design" are two pages of the same editor: they share the live
   // preview and the Save button, so nothing is lost when switching between them.
+  // Someone with no profile yet and no redeemed code sees an "Activate" box.
+  // (If the database function isn't installed yet, or they already have a
+  // profile, we stay out of the way.)
+  async function checkActivation(){
+    const box = document.getElementById("activationSection");
+    if(!currentUser || loadedProfileId){ box.style.display = "none"; return; }
+    const { data, error } = await sb.rpc("has_activation");
+    if(error){ console.error(error); box.style.display = "none"; return; }
+    box.style.display = data ? "none" : "block";
+  }
+
+  async function activateAccount(){
+    const input = document.getElementById("activateCode");
+    const msg = document.getElementById("activateMsg");
+    const btn = document.getElementById("activateBtn");
+    const code = input.value.trim().toUpperCase();
+    if(!code){ msg.textContent = "Enter your activation code"; return; }
+
+    btn.disabled = true;
+    msg.textContent = "Checking...";
+    const { data, error } = await sb.rpc("redeem_activation_code", { code_input: code });
+    btn.disabled = false;
+
+    if(error){ console.error(error); msg.textContent = "Something went wrong — try again in a moment."; return; }
+    if(!data){ msg.textContent = "That code isn't valid or has already been used."; return; }
+
+    msg.textContent = "";
+    input.value = "";
+    localStorage.removeItem("qanvora_pending_code");
+    await checkActivation();
+    setStatus("Account activated — choose a Link ID and save", false);
+  }
+
   function showView(view, fromHistory){
     const isEditor = view === "edit" || view === "design";
     document.getElementById("editView").style.display = isEditor ? "grid" : "none";
@@ -914,6 +956,7 @@
           msg.textContent = "Account created, but the code couldn't be redeemed — contact support.";
           console.error(redeemError);
         }
+        checkActivation();
       } else {
         localStorage.setItem("qanvora_pending_code", code);
         msg.textContent = "Check your email to confirm your account, then sign in.";
@@ -1120,6 +1163,7 @@
     }
 
     loadedProfileId = data ? data.id : null;
+    checkActivation();
 
     if(data){
       document.getElementById("slug").value = data.id;
