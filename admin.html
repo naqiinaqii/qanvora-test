@@ -50,6 +50,17 @@
   .preview-note{ font-size:11px; color:var(--stone); text-align:center; margin-top:12px; line-height:1.5; }
   .preview-link{ font-size:11px; color:var(--brass); word-break:break-all; margin-top:14px; display:block; }
   .preview-avatar img{ width:100%; height:100%; object-fit:cover; border-radius:50%; }
+  .preview-stage{ border-radius:22px; }
+  .preview-stage.has-bg{ padding:20px 14px; background-size:cover; background-position:center; }
+  .preview-card{ position:relative; overflow:hidden; }
+  .preview-card > :not(.pv-art):not(.pv-logo){ position:relative; z-index:1; }
+  .preview-stage.has-bg .preview-card{ background:color-mix(in srgb, var(--bg-elev) 62%, transparent); backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px); }
+  .pv-art{ display:none; position:absolute; inset:0; z-index:0; background-size:cover; background-position:center 25%; filter:brightness(.9); -webkit-mask-image:linear-gradient(to bottom, #000 0%, #000 26%, transparent 74%); mask-image:linear-gradient(to bottom, #000 0%, #000 26%, transparent 74%); }
+  .pv-art.on{ display:block; }
+  .pv-art::after{ content:""; position:absolute; inset:0; background:linear-gradient(to bottom, rgba(10,11,10,.4), rgba(10,11,10,.7)); }
+  .pv-logo{ display:none; position:absolute; top:12px; left:12px; z-index:1; max-width:54px; max-height:46px; object-fit:contain; }
+  .pv-logo.on{ display:block; }
+  .pv-logo.white{ filter:brightness(0) invert(1); }
   .qr-wrap{ background:var(--ivory); border-radius:12px; padding:16px; display:flex; align-items:center; justify-content:center; margin-top:20px; border:1px solid var(--brass-dim); }
   .qr-wrap canvas{ display:block; max-width:100%; height:auto; }
   .link-box{ background:var(--bg-field); border:1px solid var(--line); border-radius:12px; padding:12px 14px; display:flex; align-items:center; gap:10px; }
@@ -117,11 +128,13 @@
   .main{ flex:1; min-width:0; }
   @media (max-width:760px){
     .app{ flex-direction:column; }
-    .sidebar{ width:auto; height:auto; position:relative; flex-direction:row; align-items:center; padding:14px 16px; }
-    .sidebar-brand{ margin-bottom:0; margin-right:16px; }
-    .sidebar-nav{ flex-direction:row; gap:6px; flex:1; }
-    .nav-item{ margin-bottom:0; }
-    .sidebar-footer{ margin-top:0; padding-top:0; border-top:none; flex-direction:row; }
+    .sidebar{ width:auto; height:auto; position:relative; flex-direction:row; flex-wrap:wrap; align-items:center; row-gap:10px; padding:14px 16px 10px; }
+    .sidebar-brand{ margin-bottom:0; margin-right:auto; }
+    .sidebar-nav{ order:3; flex:1 1 100%; flex-direction:row; gap:6px; overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:none; }
+    .sidebar-nav::-webkit-scrollbar{ display:none; }
+    .nav-item{ margin-bottom:0; white-space:nowrap; flex-shrink:0; padding:9px 12px; }
+    .sidebar-footer{ margin-top:0; padding-top:0; border-top:none; flex-direction:row; align-items:center; }
+    .sidebar-footer .save-status{ white-space:nowrap; }
     .preview-col{ position:static; }
   }
 </style>
@@ -135,6 +148,10 @@
       <a class="nav-item active" id="nav-edit" href="#" onclick="showView('edit'); return false;">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
         Edit Profile
+      </a>
+      <a class="nav-item" id="nav-design" href="#" onclick="showView('design'); return false;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="13.5" cy="6.5" r="1"/><circle cx="17.5" cy="10.5" r="1"/><circle cx="8.5" cy="7.5" r="1"/><circle cx="6.5" cy="12.5" r="1"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.9 0 1.5-.7 1.5-1.5 0-.4-.2-.8-.4-1.1-.3-.3-.4-.7-.4-1.1 0-.8.7-1.5 1.5-1.5H16c3.3 0 6-2.7 6-6 0-4.9-4.5-8.8-10-8.8z"/></svg>
+        Edit Design
       </a>
       <a class="nav-item" id="nav-analytics" href="#" onclick="showView('analytics'); return false;">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 16l4-6 4 4 5-8"/></svg>
@@ -188,6 +205,8 @@
   <div class="layout" id="editView">
     <div>
 
+      <div id="profilePanel">
+
       <div class="section">
         <div class="section-title">Profile Link</div>
         <div class="field slug-field">
@@ -195,11 +214,6 @@
           <input type="text" id="slug" placeholder="e.g. dayang-aqilah">
           <div class="slug-hint">Letters, numbers, hyphens only. No spaces. Cannot be changed once cards are printed with it.</div>
         </div>
-      </div>
-
-      <div class="section">
-        <div class="section-title">Card Color</div>
-        <div class="swatch-row" id="colorSwatches"></div>
       </div>
 
       <div class="section">
@@ -244,6 +258,20 @@
         <button type="button" class="btn" onclick="addBlock()" style="width:100%; margin-top:4px;">+ Add Block</button>
       </div>
 
+      <div class="section" id="upgradeSection">
+        <div class="section-title">Custom Blocks — Premium</div>
+        <div class="slug-hint">Upgrade to Premium to add custom links, documents, highlights, and media to your profile — like Linktree, but built for professional cards. Premium also includes analytics and lead capture.</div>
+      </div>
+
+      </div>
+
+      <div id="designPanel" style="display:none;">
+
+      <div class="section">
+        <div class="section-title">Card Color</div>
+        <div class="swatch-row" id="colorSwatches"></div>
+      </div>
+
       <div class="section" id="premiumLookSection" style="display:none;">
         <div class="section-title">Premium Look</div>
         <div class="media-row">
@@ -261,7 +289,7 @@
             <label class="photo-btn" for="cardInput">Card photo</label>
             <input type="file" id="cardInput" accept="image/*">
             <button type="button" class="link-btn" id="cardRemove" onclick="removePremiumMedia('card')" style="display:none;">Remove</button>
-            <div class="photo-hint" id="cardHint">Fades in from the corner of the card itself.</div>
+            <div class="photo-hint" id="cardHint">Shows across the top of your card and fades down behind the buttons.</div>
           </div>
         </div>
         <div class="media-row">
@@ -278,9 +306,11 @@
         <div class="slug-hint">Photos are resized automatically so your card loads fast on phones. Click Save changes to apply.</div>
       </div>
 
-      <div class="section" id="upgradeSection">
-        <div class="section-title">Premium Features</div>
-        <div class="slug-hint">Upgrade to Premium for a photo background and card photo, custom blocks (links, documents, highlights, media), analytics, and lead capture — like Linktree, but built for professional cards.</div>
+      <div class="section" id="designUpgradeSection">
+        <div class="section-title">Premium Design</div>
+        <div class="slug-hint">Upgrade to Premium to add a photo background, a photo on your card and your own logo — so your card looks like yours.</div>
+      </div>
+
       </div>
 
       <div class="actions-bar">
@@ -292,12 +322,16 @@
 
     <div class="preview-col">
       <div class="preview-label">Live Preview</div>
+      <div class="preview-stage" id="pvStage">
       <div class="preview-card">
+        <div class="pv-art" id="pvArt"></div>
+        <img class="pv-logo" id="pvLogo" alt="">
         <div class="preview-avatar" id="pv-initials">--</div>
         <div class="preview-name" id="pv-name">Your name</div>
         <div class="preview-role" id="pv-role">Your title</div>
         <div class="preview-role" id="pv-bio" style="margin-top:-12px;"></div>
         <div class="preview-btn">Save Contact</div>
+      </div>
       </div>
       <div class="preview-note">This is what visitors see when they tap your card.</div>
 
@@ -348,6 +382,7 @@
   const fields = ["name","title","company","bio","phone","whatsapp","email","linkedin","instagram","website"];
 
   let currentUser = null;
+  let loadedForUserId = null;
   let currentAvatarUrl = "";
   let currentTier = "free";
   let blocks = [];
@@ -399,6 +434,7 @@
     document.getElementById("logoRemove").style.display = currentLogoUrl ? "inline" : "none";
     document.getElementById("logoWhite").checked = currentLogoWhite;
     updateLogoWhiteAdvice();
+    updatePreview();
   }
 
   // "White mode" turns every visible pixel white. That only works for a plain
@@ -460,6 +496,7 @@
         box.checked = false;
         const img = document.querySelector("#logoThumb img");
         if(img) img.classList.remove("white");
+        updatePreview();
       }
     } else if(kind === "dark"){
       setState(true, "Your logo is dark, so white mode will help it stand out.");
@@ -636,8 +673,12 @@
           localStorage.removeItem("qanvora_pending_code");
         });
       }
-      loadProfile();
+      if(currentUser.id !== loadedForUserId){
+        loadedForUserId = currentUser.id;
+        loadProfile().then(() => showView(viewFromHash(), true));
+      }
     } else {
+      loadedForUserId = null;
       document.getElementById("authEmail").value = "";
       document.getElementById("authPassword").value = "";
       document.getElementById("activationCode").value = "";
@@ -645,17 +686,35 @@
     }
   }
 
-  function showView(view){
-    document.getElementById("editView").style.display = view === "edit" ? "grid" : "none";
+  const VIEWS = ["edit", "design", "analytics", "leads"];
+
+  function viewFromHash(){
+    const h = location.hash.replace("#", "");
+    return VIEWS.includes(h) ? h : "edit";
+  }
+
+  // "edit" and "design" are two pages of the same editor: they share the live
+  // preview and the Save button, so nothing is lost when switching between them.
+  function showView(view, fromHistory){
+    const isEditor = view === "edit" || view === "design";
+    document.getElementById("editView").style.display = isEditor ? "grid" : "none";
+    document.getElementById("profilePanel").style.display = view === "edit" ? "block" : "none";
+    document.getElementById("designPanel").style.display = view === "design" ? "block" : "none";
     document.getElementById("analyticsView").style.display = view === "analytics" ? "block" : "none";
     document.getElementById("leadsView").style.display = view === "leads" ? "block" : "none";
 
-    ["edit","analytics","leads"].forEach(v => document.getElementById("nav-" + v).classList.remove("active"));
+    VIEWS.forEach(v => document.getElementById("nav-" + v).classList.remove("active"));
     document.getElementById("nav-" + view).classList.add("active");
+
+    // keep the address bar in step, so refresh and the back button stay on the same page
+    if(!fromHistory && location.hash !== "#" + view){ history.pushState(null, "", "#" + view); }
+    window.scrollTo(0, 0);
 
     if(view === "analytics") loadAnalytics();
     if(view === "leads") loadLeads();
   }
+
+  window.addEventListener("popstate", () => { if(currentUser) showView(viewFromHash(), true); });
 
   function escapeHtml(s){
     const div = document.createElement("div");
@@ -925,6 +984,21 @@
     document.querySelector(".preview-card").style.setProperty("--brass", accent.main);
     document.querySelector(".preview-card").style.setProperty("--brass-dim", accent.dim);
 
+    const premiumLook = currentTier === "premium";
+    const stage = document.getElementById("pvStage");
+    const bgUrl = premiumLook ? currentBgUrl : "";
+    stage.classList.toggle("has-bg", !!bgUrl);
+    stage.style.backgroundImage = bgUrl ? "url(" + JSON.stringify(bgUrl) + ")" : "none";
+    const art = document.getElementById("pvArt");
+    const artUrl = premiumLook ? currentCardImgUrl : "";
+    art.classList.toggle("on", !!artUrl);
+    art.style.backgroundImage = artUrl ? "url(" + JSON.stringify(artUrl) + ")" : "none";
+    const pvLogo = document.getElementById("pvLogo");
+    const logoUrl = premiumLook ? currentLogoUrl : "";
+    pvLogo.classList.toggle("on", !!logoUrl);
+    pvLogo.classList.toggle("white", !!logoUrl && currentLogoWhite);
+    if(logoUrl && pvLogo.getAttribute("src") !== logoUrl){ pvLogo.src = logoUrl; }
+
     const name = document.getElementById("name").value || "Your name";
     const title = document.getElementById("title").value || "Your title";
     document.getElementById("pv-name").textContent = name;
@@ -1077,6 +1151,7 @@
 
     document.getElementById("blocksSection").style.display = currentTier === "premium" ? "block" : "none";
     document.getElementById("upgradeSection").style.display = currentTier === "premium" ? "none" : "block";
+    document.getElementById("designUpgradeSection").style.display = currentTier === "premium" ? "none" : "block";
 
     blocks = [];
     if(data && currentTier === "premium"){
